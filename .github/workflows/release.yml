@@ -31,6 +31,13 @@ jobs:
         with:
           ref: ${{ env.GITHUB_REF }}
 
+      - name: Login to Github container registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.TOKEN_GITHUB }}
+
       - run: echo ${{ github.event.release.tag_name }}
 
       - name: Extract files from docker container to local
