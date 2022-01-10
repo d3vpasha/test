@@ -17,7 +17,9 @@ env:
   # AWS
   AWS_REGION: eu-west-3
   # AWS_APP_DIR: /app/src/messages.xlf
-  # AWS_S3_BUCKETNAME: test-crowdin-maksym
+  AWS_S3_BUCKETNAME: test-crowdin-maksym
+  AWS_S3_BUCKETNAME_DEPLOY: test-deploy-maksym
+  AWS_ARTIFACT_PATH: test/release
 
 jobs:
 
@@ -38,7 +40,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.TOKEN_GITHUB }}
 
-      - run: echo ${{ github.event.release.tag_name }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Extract files from docker container to local
         uses: shrink/actions-docker-extract@v1
@@ -47,9 +54,14 @@ jobs:
           image: ${{ env.REGISTRY }}/${{ env.GIT_ORGA }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           path: ${{ env.AWS_APP_DIR }}
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: Get latest release
+        run: echo "LATEST_RELEASE=$(echo ${{ github.event.release.tag_name }})" >> $GITHUB_ENV
+
+      - name: Package artifacts
+        run: |-
+          mkdir -p packages/$AWS_ARTIFACT_PATH-$LATEST_RELEASE
+          tar -zcf packages/$AWS_ARTIFACT_PATH-$LATEST_RELEASE/package.tar.gz ${{ steps.extract.outputs.destination }}
+
+      - name: Deploy package to S3 bucket
+        run: |-
+          aws s3 sync packages s3://$AWS_S3_BUCKETNAME_DEPLOY
