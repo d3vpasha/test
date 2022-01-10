@@ -5,6 +5,20 @@ on:
     types:
       - published
 
+env:
+  # git
+  REGISTRY: ghcr.io
+  GIT_ORGA: shoppingflux
+  # image
+  # DOCKERFILE: dockerfiles/crowdin.Dockerfile
+  IMAGE_NAME: prod-crowdin
+  IMAGE_TAG: latest
+  # BASE_IMAGE_NAME: prod-build
+  # AWS
+  AWS_REGION: eu-west-3
+  # AWS_APP_DIR: /app/src/messages.xlf
+  # AWS_S3_BUCKETNAME: test-crowdin-maksym
+
 jobs:
 
   build:
@@ -18,3 +32,17 @@ jobs:
           ref: ${{ env.GITHUB_REF }}
 
       - run: echo ${{ github.event.release.tag_name }}
+
+      - name: Extract files from docker container to local
+        uses: shrink/actions-docker-extract@v1
+        id: extract
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.GIT_ORGA }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          path: ${{ env.AWS_APP_DIR }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
