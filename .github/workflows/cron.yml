@@ -1,0 +1,17 @@
+name: crontab
+
+on:
+  schedule:
+    - cron: '45 15 * * 1-5'
+
+jobs:
+
+  build:
+
+    name: "crontab"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.GITHUB_REF }}
